@@ -822,6 +822,14 @@ Begin. Run the loop until FINAL.</pre>
         <li><b>Route by task.</b> A classifier sends easy requests to a small cheap model, hard ones to a frontier model.</li>
         <li><b>Fallback cascades &amp; degraded-mode UX.</b> If the primary fails, fall back, and design the UX for the degraded path so users get grace, not an error.</li>
       </ul>
+      <div class="callout">
+        <div class="ct">Going deeper (optional): what the serving layer does for you</div>
+        <p style="margin-bottom:10px;">If you self-host an open-weight model, a serving engine (vLLM, TGI, SGLang) sits under your API and decides your real throughput and cost. You will rarely tune this by hand as a builder, but knowing the vocabulary lets you talk to an infra engineer and read a hosting bill. The essentials:</p>
+        <p style="margin-bottom:8px;"><b>KV cache &amp; PagedAttention.</b> Every token a model generates re-reads cached key/value tensors for all prior tokens. That cache is the main consumer of GPU memory. PagedAttention manages it like an operating system manages RAM (non-contiguous pages, allocated on demand), which cuts the memory waste that otherwise caps how many requests fit at once. Eviction and prefix reuse (sharing the cache for an identical system-prompt prefix) are the same idea as prompt caching from earlier in this chapter, one layer down.</p>
+        <p style="margin-bottom:8px;"><b>Continuous batching.</b> Naive batching locks the GPU until the slowest request in a batch finishes, leaving it idle much of the time. Continuous (iteration-level) batching admits and retires requests every decode step, which is most of why a serving engine handles several times more traffic than a plain inference loop on the same hardware.</p>
+        <p style="margin-bottom:8px;"><b>Speculative decoding.</b> A small "draft" model proposes several tokens and the big model verifies them in one pass, speeding up decode without changing the output.</p>
+        <p style="margin-bottom:0;"><b>Quantization (the one with a real quality knob).</b> Storing weights at lower precision shrinks memory and raises throughput. The rough 2026 ladder: <b>FP8</b> is near-lossless and the common default on modern data-center GPUs; <b>INT8</b> is a small, safe drop; <b>INT4</b> (via AWQ or GPTQ) fits big models on small hardware but visibly degrades reasoning, math, and code, so test on your task before trusting it. The rule of thumb: quantization hurts smaller models more than larger ones, and hurts hard reasoning more than simple classification or summarization.</p>
+      </div>
       <div class="section-tag">Hands-on</div>
       <p>Build a cost model for one feature: tokens-in × input price + tokens-out × output price, per request, then per 1,000 users. Apply prefix caching and re-estimate. Separately, measure time-to-first-token with and without streaming. Bring these numbers to a design review.</p>
       <div class="ladder">
@@ -834,6 +842,8 @@ Begin. Run the loop until FINAL.</pre>
         <li><a href="https://www.digitalapplied.com/blog/prompt-caching-2026-cut-llm-costs-engineering-guide" target="_blank" rel="noopener">Prompt Caching in 2026: Cut LLM Costs</a> <span class="src">(Digital Applied)</span></li>
         <li><a href="https://www.morphllm.com/llm-inference-optimization" target="_blank" rel="noopener">LLM Inference Optimization at Every Layer</a> <span class="src">(Morph, 2026)</span></li>
         <li><a href="https://docs.claude.com/en/docs/build-with-claude/prompt-caching" target="_blank" rel="noopener">Prompt caching documentation</a> <span class="src">(Anthropic Docs)</span></li>
+        <li><a href="https://vllm.ai/blog/2025-09-05-anatomy-of-vllm" target="_blank" rel="noopener">Inside vLLM: anatomy of a high-throughput inference system</a> <span class="src">(optional, deeper, vLLM)</span></li>
+        <li><a href="https://www.digitalapplied.com/blog/quantization-tradeoffs-4bit-8bit-fp8-performance-data" target="_blank" rel="noopener">Quantization tradeoffs: 4-bit vs 8-bit vs FP8, with data</a> <span class="src">(optional, deeper, 2026)</span></li>
       </ul>
       <div class="checkpoint">
         <div class="ct">▸ Checkpoint, you should be able to…</div>
@@ -842,6 +852,7 @@ Begin. Run the loop until FINAL.</pre>
           <li>Explain how prompt ordering affects cache hit rate.</li>
           <li>Diagnose whether a slow request is prefill- or decode-bound.</li>
           <li>Describe a routing + fallback design with degraded-mode UX.</li>
+          <li><em>Optional:</em> explain in one sentence each what PagedAttention, continuous batching, and quantization do, and when INT4 quantization is risky.</li>
         </ul>
       </div>
     </section>
