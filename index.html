@@ -171,10 +171,39 @@
   /* ---------- Responsive ---------- */
   @media(max-width:860px){
     .wrap{grid-template-columns:1fr;}
-    .spine{display:none;}
     .content{padding:0 22px 100px;}
     .hero{padding:56px 0 40px;}
+    /* Turn the spine into a slide-in drawer instead of hiding it */
+    .spine{
+      position:fixed;top:0;left:0;height:100vh;width:82vw;max-width:320px;
+      background:var(--paper);border-right:1px solid var(--line);
+      z-index:60;transform:translateX(-105%);transition:transform .28s ease;
+      box-shadow:2px 0 24px rgba(20,20,20,.12);padding-top:64px;
+    }
+    body.nav-open .spine{transform:translateX(0);}
+    /* Floating Contents button */
+    .navbtn{
+      position:fixed;right:16px;bottom:18px;z-index:70;display:inline-flex;
+      align-items:center;gap:8px;background:var(--ink);color:#fff;border:none;
+      border-radius:999px;padding:12px 18px;font-family:var(--mono);font-size:12px;
+      letter-spacing:.08em;text-transform:uppercase;font-weight:700;cursor:pointer;
+      box-shadow:0 6px 20px rgba(20,20,20,.28);
+    }
+    .navbtn svg{width:15px;height:15px;fill:none;stroke:#fff;stroke-width:2;}
+    /* Backdrop behind the open drawer */
+    .navback{
+      position:fixed;inset:0;background:rgba(20,20,20,.45);z-index:55;
+      opacity:0;pointer-events:none;transition:opacity .28s ease;
+    }
+    body.nav-open .navback{opacity:1;pointer-events:auto;}
+    /* Close (X) inside the drawer */
+    .navclose{
+      position:absolute;top:14px;right:14px;z-index:80;background:none;border:none;
+      font-size:26px;line-height:1;color:var(--muted);cursor:pointer;padding:4px 8px;
+    }
   }
+  /* The button, backdrop, and close control only exist on mobile */
+  @media(min-width:861px){ .navbtn,.navback,.navclose{display:none;} }
   @media(prefers-reduced-motion:reduce){*{transition:none!important;scroll-behavior:auto!important;}}
 
   /* ---------- Print ---------- */
@@ -191,10 +220,16 @@
 </style>
 </head>
 <body>
+<button class="navbtn" id="navbtn" aria-label="Open chapter contents" aria-expanded="false">
+  <svg viewBox="0 0 24 24"><line x1="4" y1="7" x2="20" y2="7"/><line x1="4" y1="12" x2="20" y2="12"/><line x1="4" y1="17" x2="20" y2="17"/></svg>
+  Contents
+</button>
+<div class="navback" id="navback" aria-hidden="true"></div>
 <div class="wrap">
 
   <!-- ================= SPINE ================= -->
   <nav class="spine" id="spine" aria-label="Journey navigation">
+    <button class="navclose" id="navclose" aria-label="Close contents">&times;</button>
     <div class="spine-label">The Journey · 12 stages</div>
     <ul class="track" id="track">
       <li class="part"><span class="pl">I · Foundations</span></li>
@@ -1092,6 +1127,27 @@ Begin. Run the loop until FINAL.</pre>
 </div>
 
 <script>
+  // Mobile chapter drawer: open/close, backdrop, and auto-close on link tap
+  (function(){
+    var btn = document.getElementById('navbtn');
+    var back = document.getElementById('navback');
+    var closeBtn = document.getElementById('navclose');
+    var track = document.getElementById('track');
+    function setOpen(open){
+      document.body.classList.toggle('nav-open', open);
+      if(btn) btn.setAttribute('aria-expanded', open ? 'true' : 'false');
+    }
+    if(btn) btn.addEventListener('click', function(){ setOpen(!document.body.classList.contains('nav-open')); });
+    if(back) back.addEventListener('click', function(){ setOpen(false); });
+    if(closeBtn) closeBtn.addEventListener('click', function(){ setOpen(false); });
+    // Tapping any chapter link closes the drawer so you land on the section
+    if(track) track.addEventListener('click', function(e){
+      if(e.target.closest('a')) setOpen(false);
+    });
+    // Esc closes it
+    document.addEventListener('keydown', function(e){ if(e.key === 'Escape') setOpen(false); });
+  })();
+
   // Load real YouTube thumbnails, and lazy-embed the player on click (lite-youtube pattern)
   document.querySelectorAll('.vid[data-yt]').forEach(function(card){
     var id = card.getAttribute('data-yt');
