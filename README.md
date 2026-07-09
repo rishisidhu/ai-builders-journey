@@ -2,7 +2,7 @@
 
 **A self-paced curriculum that takes you from LLM basics to shipping production agents, loops, and RAG systems as a company's AI builder.**
 
-[**Read the curriculum**](https://YOUR-USERNAME.github.io/ai-builders-journey/) · Curated June 2026
+[**Read the curriculum**](https://rishisidhu.github.io/ai-builders-journey/) · Curated June 2026
 
 ## What this is
 
